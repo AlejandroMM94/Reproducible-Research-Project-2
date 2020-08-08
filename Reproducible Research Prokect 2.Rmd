@@ -1,0 +1,166 @@
+---
+title: "Course Project 2: Storm Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Summary
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) [storm database](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2). This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+The objective of this work is to find which types of weather events are most harmful to population health and which are those with the greatest economic consequences
+
+## Data Processing
+
+Setting the working directory, importing the data and creating two datsets. The Storm_harmful dataset will be used to answer which types of events are most harmful to population health. The Storm_economy dataset will be used to answer which types of events have the greatest economic consequences. 
+
+```{r cars}
+setwd("C:/Users/S510U/Desktop")
+Storm <- read.csv(file = "./repdata_data_StormData.csv.bz2")
+Storm_harmful <-subset(Storm, select=c(EVTYPE,FATALITIES,INJURIES))
+Storm_economy <-subset(Storm, select=c(EVTYPE,CROPDMG,CROPDMGEXP,PROPDMG,PROPDMGEXP))
+```
+
+## Results
+
+### The effect of Weather events in Population Health
+
+Creating a dataset to summarize the fatalities by weather event. Then, ordering the results and selecting the top ten with the highest values
+
+```{r}
+Storm_fatalities <- aggregate(FATALITIES ~ EVTYPE, data = Storm_harmful, sum)
+max_fatalities <- Storm_fatalities[order(-Storm_fatalities$FATALITIES), ]
+max_fatalities[1:10, ]
+```
+
+Creating a dataset to summarize the injuries by weather event. Then, ordering the results and selecting the top ten with the highest values
+
+```{r}
+Storm_injuries <- aggregate(INJURIES ~ EVTYPE, data = Storm, sum)
+max_injuries <- Storm_injuries[order(-Storm_injuries$INJURIES), ] 
+max_injuries[1:10, ]
+```
+
+Creating a dataset to summarize the fatalities + injuries by weather event. Then ordering the results and selecting the ten with the highest values
+
+```{r}
+Storm_harmful$HARM <- Storm_harmful$FATALITIES + Storm_harmful$INJURIES
+Storm_harmful_total <- aggregate(HARM ~ EVTYPE, data = Storm_harmful, sum)
+max_harmful <- Storm_harmful_total[order(-Storm_harmful_total$HARM), ]
+max_harmful[1:10, ]
+```
+
+Loading ggplot2 library and creating a barplot to show the Top Ten of weather events with the highest impact on Population Health
+
+```{r}
+library(ggplot2)
+top10_harmful <- max_harmful[1:10, ]
+top10_harmuful_plot <- ggplot(data = top10_harmful, aes(x=EVTYPE,y=HARM)) +
+        geom_bar(stat="identity") +
+        coord_flip() +
+        xlab("Type of Event") +
+        ylab("Total number of Fatalities + Injuries") +
+        ggtitle("Top Ten of weather events with the highest impact on Population Health")
+top10_harmuful_plot
+```
+
+### The effect of Weather events in Economy
+
+Revisiting the factor levels of the PROPDMGEXP and CROPDMGEXP variables, we observe that these need to be edited to use it in posterior analyses
+
+```{r}
+levels(Storm_economy$PROPDMGEXP)
+levels(Storm_economy$CROPDMGEXP)
+```
+
+Using the gsub() function to replace the original factor levels in the PROPDMGEXP variable for new values according to this [website](https://github.com/flyingdisc/RepData_PeerAssessment2/blob/master/how-to-handle-PROPDMGEXP.md) 
+ 
+```{r}
+Storm_economy$PROPDMGEXP[Storm_economy$PROPDMGEXP == ""] <- NA
+Storm_economy$PROPDMGEXP <- gsub("1", "10", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("NA", "1", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("\\-", "1", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("\\?", "1", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("\\+", "1", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("^0$", "1", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("h|H", "100", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("K", "1000", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("m|M", "1000000", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("B", "1000000000", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("2", "100", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("3", "1000", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("4", "10000", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("5", "100000", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("6", "1000000", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("7", "10000000", Storm_economy$PROPDMGEXP)
+Storm_economy$PROPDMGEXP <- gsub("8", "100000000", Storm_economy$PROPDMGEXP)
+```
+
+Using the gsub() function to replace the original factor levels in the CROPDMGEXP variable for new values according to this [website](https://github.com/flyingdisc/RepData_PeerAssessment2/blob/master/how-to-handle-PROPDMGEXP.md) 
+
+```{r}
+Storm_economy$CROPDMGEXP[Storm_economy$CROPDMGEXP == ""] <- NA
+Storm_economy$CROPDMGEXP <- gsub("NA", "1", Storm_economy$CROPDMGEXP)
+Storm_economy$CROPDMGEXP <- gsub("\\?", "1", Storm_economy$CROPDMGEXP)
+Storm_economy$CROPDMGEXP <- gsub("^0$", "1", Storm_economy$CROPDMGEXP)
+Storm_economy$CROPDMGEXP <- gsub("k|K", "1000", Storm_economy$CROPDMGEXP)
+Storm_economy$CROPDMGEXP <- gsub("m|M", "1000000", Storm_economy$CROPDMGEXP)
+Storm_economy$CROPDMGEXP <- gsub("B", "1000000000", Storm_economy$CROPDMGEXP)
+Storm_economy$CROPDMGEXP <- gsub("2", "100", Storm_economy$CROPDMGEXP)
+```
+
+Creating a dataset to summarize the property damage by weather event. Then, ordering the results and selecting the top ten with the highest values
+
+```{r}
+Storm_economy$TOTALPROP <- Storm_economy$PROPDMG * as.numeric(Storm_economy$PROPDMGEXP)
+Storm_property <- aggregate(TOTALPROP ~ EVTYPE, data = Storm_economy, sum)
+max_property <- Storm_property[order(-Storm_property$TOTALPROP), ]
+max_property[1:10, ]
+```
+
+Creating a barplot to show the Top Ten of weather events with the highest Property damage
+
+```{r}
+top10_property <- max_property[1:10, ]
+top10_property_plot <- ggplot(data = top10_property, aes(x=EVTYPE,y=TOTALPROP)) +
+        geom_bar(stat="identity") +
+        coord_flip() +
+        xlab("Type of Event") +
+        ylab("Total number of Property damage") +
+        ggtitle("Top Ten of Weather events with the highest Property damage")
+top10_property_plot
+```
+
+Creating a dataset to summarize the crop damage by weather event. Then, ordering the results and selecting the top ten with the highest values
+
+```{r}
+Storm_economy$TOTALCROP <- Storm_economy$CROPDMG * as.numeric(Storm_economy$CROPDMGEXP)
+Storm_crop <- aggregate(TOTALCROP ~ EVTYPE, data = Storm_economy, sum)
+max_crop <- Storm_crop[order(-Storm_crop$TOTALCROP), ]
+max_crop[1:10, ]
+```
+
+Creating a barplot to show the Top Ten of weather events with the highest Crop damage
+
+```{r}
+top10_crop <- max_crop[1:10, ]
+top10_crop_plot <- ggplot(data = top10_crop, aes(x=EVTYPE,y=TOTALCROP)) +
+        geom_bar(stat="identity") +
+        coord_flip() +
+        xlab("Type of Event") +
+        ylab("Total number of Crop damage") +
+        ggtitle("Top Ten of Weather events with the highest Crop damage")
+top10_crop_plot
+```
+
+## Conclusions
+
+_ The most harmful weather event to population health in the U.S. is Tornado.
+
+_ The weather event that produces the highest propiety damage in the U.S. is Flood
+
+_ The weather event that produces the highest crop damage in the U.S. is Drought
+
